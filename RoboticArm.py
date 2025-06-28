@@ -9,7 +9,6 @@ import datetime
 
 # Set page config and compact title
 st.set_page_config(layout="wide", page_title="eXercise")
-# st.markdown("<h1 style='text-align: center;'>eXercise</h1>", unsafe_allow_html=True)
 
 # Tabs
 main_tab, advisor_tab = st.tabs(["Robotic Arm Selector", "AI Advisor"])
