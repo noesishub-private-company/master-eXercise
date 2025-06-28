@@ -11,17 +11,6 @@ import datetime
 st.set_page_config(layout="wide", page_title="eXercise")
 # st.markdown("<h1 style='text-align: center;'>eXercise</h1>", unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-/* Increase font size of tab labels */
-[data-testid="stTabs"] button[role="tab"] {
-    font-size: 1.3rem !important;
-    font-weight: 600 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
 # Tabs
 main_tab, advisor_tab = st.tabs(["Robotic Arm Selector", "AI Advisor"])
 
