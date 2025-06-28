@@ -1,6 +1,5 @@
 import streamlit as st
-from huggingface_hub import InferenceClient
-from huggingface_hub import HfApi
+from huggingface_hub import InferenceClient, HfApi
 import os
 from pydantic import BaseModel
 import openai
@@ -8,70 +7,62 @@ import json
 import requests
 import datetime
 
-st.set_page_config(layout="wide", page_title="Robotic Arm")
+# Set page config and compact title
+st.set_page_config(layout="wide", page_title="eXercise")
+# st.markdown("<h1 style='text-align: center;'>eXercise</h1>", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+/* Increase font size of tab labels */
+[data-testid="stTabs"] button[role="tab"] {
+    font-size: 1.3rem !important;
+    font-weight: 600 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
-column1, column2, column3 = st.columns([1, 1, 1])
+# Tabs
+main_tab, advisor_tab = st.tabs(["Robotic Arm Selector", "AI Advisor"])
 
-with column1:
-    st.title("Robotic Arm Selector")
-with column2:
-    st.selectbox("Select the model to use:",
-                ["Qwen/Qwen2.5-72B-Instruct", 
-                "HuggingFaceH4/zephyr-7b-beta", 
-                "mistralai/Mistral-7B-Instruct-v0.3",
-                "gpt-4o",
-                "gpt-4o-mini"], key="model_used")
-with column3:
-    st.number_input("Number of Robotic Arms", key="NOF_ROBOTIC_ARMS", value=5)
-
-if "response_llm" not in st.session_state:
-    st.session_state["response_llm"] = ""
-
-if "stress_prediction" not in st.session_state:
-    st.session_state["stress_prediction"] = ""
-
-st.markdown("\n\n\n\n\n")
-
-
-tab1, tab2 = st.tabs(["Robotic Arm Selector", "AI Advisor"])
-
-with tab1:
+with main_tab:
     col1, col2, col3 = st.columns([1, 0.5, 0.5])
 
     with col1:
-        initial_system_instructions = "You are an LLM Algorithm that will facilitate the implementation of a Language-to-XR Scene Component. With this advancement, workplace safety trainees can easily deploy XR training scenes for small-scale virtualfires and/or malfunctioning robotic arms by simply describing the scenario specifications in a prompt, which will be automatically transformed into a training scenario."
+        selected_model = st.selectbox("Select the model to use:", [
+            "Qwen/Qwen2.5-72B-Instruct", 
+            "HuggingFaceH4/zephyr-7b-beta", 
+            "mistralai/Mistral-7B-Instruct-v0.3",
+            "gpt-4o",
+            "gpt-4o-mini"
+        ], key="model_used")
 
-        st.session_state.llm_messages = []
-        st.session_state.llm_messages.append({"role": "system", "content": initial_system_instructions})
-        first_llm_message = "Please provide your inquiry in natural language and the distances of the robotic arms "
-        first_llm_message += "in the rigth column, and I will provide you with the best recommendation."
-        st.session_state.llm_messages.append({"role": "assistant", "content": first_llm_message})
-        
-        chat_display_screen = st.container(height=500)
+        number_of_arms = st.number_input("Number of Robotic Arms", key="NOF_ROBOTIC_ARMS", value=5)
 
+        initial_system_instructions = "You are an LLM Algorithm that will facilitate the implementation of a Language-to-XR Scene Component..."
+
+        if "llm_messages" not in st.session_state:
+            st.session_state.llm_messages = []
+            st.session_state.llm_messages.append({"role": "system", "content": initial_system_instructions})
+            first_llm_message = "Please provide your inquiry in natural language and the distances of the robotic arms..."
+            st.session_state.llm_messages.append({"role": "assistant", "content": first_llm_message})
+
+        if "response_llm" not in st.session_state:
+            st.session_state["response_llm"] = ""
+
+        chat_display_screen = st.container(height=350)
         chat_display_screen.chat_message("ai", avatar=":material/precision_manufacturing:").markdown(st.session_state.llm_messages[-1]["content"])
 
         if user_prompt := st.chat_input("Enter your prompt here"):
-
-            if len(user_prompt)<20:
+            if len(user_prompt) < 20:
                 st.error("Please enter a prompt with more than 20 characters")
-            
             else:
                 chat_display_screen.chat_message("user", avatar=":material/engineering:").markdown(user_prompt)
 
-                prompt_to_llm = f"The trainer said: {user_prompt}\n\n"
-                prompt_to_llm += "The distances of the robotic arms are: " 
+                prompt_to_llm = f"The trainer said: {user_prompt} The distances of the robotic arms are: "
                 prompt_to_llm += ", ".join([f"Robotic Arm Number {i+1}, Distance = {st.session_state[f'distance-{i}']}" for i in range(st.session_state['NOF_ROBOTIC_ARMS'])])
-                prompt_to_llm += f". Use the information provided previously to suggest which robotic arm number "
-                prompt_to_llm += f"({1} to {st.session_state['NOF_ROBOTIC_ARMS']}) aligns with that information based on the distances and the following trainer prompt. "
-                prompt_to_llm += f"Also, identify any potentially malfunctioning arms according to the trainer prompt ({1} to {st.session_state['NOF_ROBOTIC_ARMS']}). "
-                prompt_to_llm += f"If the trainer asks only for virtual fire, the return should be -1 for Robotic_Arm_Malfunctioning. " 
-                prompt_to_llm += f"If the trainer asks only for malfunctioning, the return should be -1 for Robotic_Arm_Virtual_Fire. "
-                prompt_to_llm += f"If the trainer asks for both, the return should be ({1} to {st.session_state['NOF_ROBOTIC_ARMS']}) for Robotic_Arm_Virtual_Fire "
-                prompt_to_llm += f"and ({1} to {st.session_state['NOF_ROBOTIC_ARMS']}) for Robotic_Arm_Malfunctioning, based on the distances and the trainer prompt. "
-                prompt_to_llm += f"Remember, the trainer said: {user_prompt}\n\n"
-                
+                prompt_to_llm += f". Use the information provided previously to suggest which robotic arm number (1 to {st.session_state['NOF_ROBOTIC_ARMS']}) aligns with that information..."
+                prompt_to_llm += f"Remember, the trainer said: {user_prompt}"
 
                 class RoboticArmRecommendation(BaseModel):
                     Robotic_Arm_Virtual_Fire: int
@@ -82,78 +73,70 @@ with tab1:
                 st.session_state["response_llm"] = ""
 
                 if st.session_state["model_used"].startswith("gpt-"):
-                    # OPENAI
                     st.session_state.client = openai.OpenAI()
-                    client_response_llm = st.session_state.client.beta.chat.completions.parse(messages=st.session_state.llm_messages, 
-                                                                                        model=st.session_state["model_used"], 
-                                                                                        max_tokens=512, response_format=RoboticArmRecommendation)
+                    client_response_llm = st.session_state.client.beta.chat.completions.create(
+                        messages=st.session_state.llm_messages,
+                        model=st.session_state["model_used"],
+                        max_tokens=512
+                    )
                     st.session_state["response_llm"] = client_response_llm.choices[0].message.content
                 else:
-                    # TRANSFORMERS
-                    # https://huggingface.co/learn/cookbook/en/structured_generation
-                    
                     llm_client = InferenceClient(model=st.session_state["model_used"], token=os.getenv("HF_TOKEN"))
                     st.session_state["response_llm"] = llm_client.text_generation(
-                                    prompt_to_llm,
-                                    grammar={"type": "json", "value": RoboticArmRecommendation.model_json_schema()},
-                                    max_new_tokens=250,
-                                    temperature=1.6,###################################
-                                    return_full_text=False,
-                                )
+                        prompt_to_llm,
+                        grammar={"type": "json", "value": RoboticArmRecommendation.model_json_schema()},
+                        max_new_tokens=250,
+                        temperature=1.6,
+                        return_full_text=False,
+                    )
+
                 try:
                     response_llm_json = json.loads(st.session_state["response_llm"])
                     str_display = "Robotic Arm Virtual Fire: " + str(response_llm_json["Robotic_Arm_Virtual_Fire"])
-                    str_display += "\n\nRobotic Arm Malfunctioning: " + str(response_llm_json["Robotic_Arm_Malfunctioning"])
-                    str_display += "\n\nReason of selection: " + response_llm_json["Reason_of_selection"]
+                    str_display += "\nRobotic Arm Malfunctioning: " + str(response_llm_json["Robotic_Arm_Malfunctioning"])
+                    str_display += "\nReason of selection: " + response_llm_json["Reason_of_selection"]
                 except:
                     str_display = st.session_state["response_llm"]
+
                 chat_display_screen.chat_message("ai", avatar=":material/precision_manufacturing:").markdown(str_display)
                 st.session_state.llm_messages.append({"role": "assistant", "content": st.session_state["response_llm"]})
+
                 with open("llm_messages.json", "w") as json_file:
                     json.dump(st.session_state["llm_messages"], json_file, indent=4)
-                
+
                 with open("response_llm_json.json", "w") as json_file:
                     json.dump(response_llm_json, json_file, indent=4)
 
                 api = HfApi()
                 with open("response_llm_json.json", "rb") as fobj:
                     api.upload_file(
-                            path_or_fileobj=fobj,
-                            path_in_repo="response_llm_json.json",
-                            repo_id="domain/XYZ",
-                            repo_type="dataset",
-                            commit_message="Upload generated file",
-                            token=os.getenv("HF_TOKEN")
-                        )
-        
+                        path_or_fileobj=fobj,
+                        path_in_repo="response_llm_json.json",
+                        repo_id="noesishub/XYZ",
+                        repo_type="dataset",
+                        commit_message="Upload generated file",
+                        token=os.getenv("HF_TOKEN")
+                    )
+
         try:
             st.json(st.session_state["llm_messages"], expanded=False)
         except:
             st.write(st.session_state["llm_messages"])
-        
+
         st.write("Sample prompts")
         st.json({
-            "scenario_1": "There is a virtual fire close to the base. One of the robotic arms seems to be moving erratically at a far distance.",
-            "scenario_2": "A virtual fire is detected at a far distance. One arm isn't responding as expected at a close distance.",
-            "scenario_3": "Fire is burning in the middle zone. One robotic arm is showing abnormal distance values at a far distance.",
-            "scenario_4": "There's a nearby virtual fire. One of the robotic arms failed to reach its target at a middle distance.",
-            "scenario_5": "Virtual fire detected far away. An arm is jittering and behaving inconsistently at a close distance.",
-            "scenario_6": "The fire is in the mid-range zone. One robotic arm stopped mid-operation unexpectedly at a far distance.",
-            "scenario_7": "Virtual fire is close. A robotic arm is stuck at a fixed far distance.",
-            "scenario_8": "Fire alert from a distant location. One of the robotic arms is moving slower than others at a close distance.",
-            "scenario_9": "A middle-distance fire was triggered. One robotic arm reported sudden jumps in position at a far distance.",
-            "scenario_10": "There's a fire nearby. One arm didn't react to the previous command at a middle distance."
+            "scenario_1": "There is a virtual fire close to the base...",
+            "scenario_2": "A virtual fire is detected at a far distance...",
         }, expanded=False)
 
     with col2:
-        st.header("Distance Input", help="The trainee is the point of reference. Input the distance measurements for each robotic arm from the perspective of the trainee. This data is crucial for analyzing the performance and identifying any potential issues with the robotic arms during the session.")
+        st.header("Distance Input", help="The trainee is the point of reference...")
         st.write("(zero distance is the point where the trainee is located - working)")
 
         import random
         if "initial_distances" not in st.session_state:
             st.session_state["initial_distances"] = [random.uniform(1, 10) for _ in range(100)]
 
-                
         for i in range(st.session_state["NOF_ROBOTIC_ARMS"]):
             st.number_input(f"Enter distance of **robotic arm {i+1}**", 
                             value=st.session_state["initial_distances"][i], 
@@ -167,106 +150,112 @@ with tab1:
             except:
                 st.write(st.session_state["response_llm"])
         st.markdown("---")
-        st.write("Selected AI Model:" + st.session_state["model_used"])
-        st.markdown("*LLMs may generate inaccurate responses; please verify the responses and comply with the corresponding terms.*")
+        st.write("Selected AI Model: " + st.session_state["model_used"])
+        st.markdown("*LLMs may generate inaccurate responses; please verify...*")
 
 
+with advisor_tab:
+    left_col, right_col = st.columns([1, 1])
 
-params = {
-    "baseline_date": "2025-02-27",
-    "baseline_start_time": "21:00",
-    "baseline_end_time": "21:30",
-    "classification_date": "2025-02-27",
-    "classification_start_time": "12:00",
-    "classification_end_time": "23:00"
-}
+    with left_col:
+        with st.form("advisor_form"):
+            st.subheader("Required Inputs")
 
-classification_start = datetime.datetime.strptime(params["classification_start_time"], "%H:%M")
-classification_end = datetime.datetime.strptime(params["classification_end_time"], "%H:%M")
-classification_duration = (classification_end - classification_start).total_seconds() / 60
+            with st.expander("AWS Configuration", expanded=False):
+                aws_access_key_id = st.text_input("AWS Access Key ID")
+                aws_secret_access_key = st.text_input("AWS Secret Access Key", type="password")
+                col_aws1, col_aws2 = st.columns(2)
+                with col_aws1:
+                    aws_region_name = st.selectbox("Region", [
+                        "us-east-1", "us-west-1", "us-west-2", "eu-west-1", "eu-central-1",
+                        "ap-southeast-1", "ap-northeast-1", "ap-south-1"
+                    ])
+                with col_aws2:
+                    timezone = st.selectbox("Timezone", [
+                        "UTC", "Europe/Athens", "Europe/Berlin", "America/New_York", "Asia/Tokyo", "Australia/Sydney"
+                    ])
+                s3_bucket = st.text_input("S3 Bucket Name")
+                prefix = st.text_input("S3 Prefix (e.g. v2/.../participant_data/)")
+                participant_id = st.text_input("Participant Full ID")
 
-with tab2:
-    tab2_col1, tab2_col2, tab2_col3 = st.columns([1, 1, 1])
-    with tab2_col1:
-        
-        if st.button("Session Performance Report"):
-            with st.spinner("Generating the report, please wait..."):
-                messages_from_json = json.load(open("llm_messages.json"))
-                instructions_to_generate_report = "Generate a report of the session Performance based on the following information: "
-                instructions_to_generate_report += "The date of the session is: " + st.session_state["api_date"].strftime("%d/%m/%Y")
-                instructions_to_generate_report += "The participant id is: " + st.session_state["api_participant_id"]
-                instructions_to_generate_report += f"The Session duration is {classification_duration} minutes. "
-                distances = [f"Robotic Arm Number {i+1}, Distance = {st.session_state['initial_distances'][i]}" for i in range(st.session_state['NOF_ROBOTIC_ARMS'])]
-                instructions_to_generate_report += " The distances of the robotic arms are: " + ", ".join(distances) + "."
-                instructions_to_generate_report += "The performance evaluation of the trainee is: " + str(st.session_state["stress_prediction"])
-                instructions_to_generate_report += "The report should be in markdown format and analytical. "
-                instructions_to_generate_report += "Should comprise all details of the session and the results and the recommendations and conclusions. "
-                instructions_to_generate_report += "Make tables where appropriate. "
-                instructions_to_generate_report += "Add info about Robotic_Arm_Virtual_Fire and Robotic_Arm_Malfunctioning. "
-                instructions_to_generate_report += f"Start the markdown directly without any ```markdown.```"
-                instructions_to_generate_report += f"Start by writing the # Session Performance Report title"
-                messages_from_json.append({"role": "user", "content": instructions_to_generate_report})
-                report_response = ""
-                report_placeholder = st.empty()
+            with st.expander("Baseline Phase Settings", expanded=False):
+                col_b1, col_b2 = st.columns(2)
+                with col_b1:
+                    baseline_date = st.date_input("Baseline Date", value=datetime.date(2025, 2, 27))
+                with col_b2:
+                    baseline_start_time = st.time_input("Start Time", value=datetime.time(21, 0))
+                baseline_end_time = st.time_input("End Time", value=datetime.time(21, 30))
 
-                if st.session_state["model_used"].startswith("gpt-"):
-                    st.session_state.client = openai.OpenAI()
-                    for chunk in st.session_state.client.chat.completions.create(messages=messages_from_json,
-                                                                                 model=st.session_state["model_used"], 
-                                                                                 stream=True):
-                        if hasattr(chunk.choices[0].delta, 'content'):
-                            if chunk.choices[0].delta.content is not None:
-                                chunk.choices[0].delta.content = chunk.choices[0].delta.content.replace("```markdown", "")
-                                report_response += chunk.choices[0].delta.content
-                                report_placeholder.markdown(report_response)
-                else:
-                    llm_client = InferenceClient(model=st.session_state["model_used"], token=os.getenv("HF_TOKEN"))
-                    for chunk in llm_client.chat_completion(messages_from_json, stream=True):
-                        if chunk.choices[0].delta.content:  
-                            report_response += chunk.choices[0].delta.content.replace("```markdown", "")
-                            report_placeholder.markdown(report_response)
-                
-                with open("session_stress_report.md", "w") as md_file:
-                    md_file.write(report_response)
+            with st.expander("Classification Phase Settings", expanded=False):
+                col_c1, col_c2 = st.columns(2)
+                with col_c1:
+                    classification_date = st.date_input("Classification Date", value=datetime.date(2025, 2, 27))
+                with col_c2:
+                    classification_start_time = st.time_input("Start Time", value=datetime.time(12, 0))
+                classification_end_time = st.time_input("End Time", value=datetime.time(23, 0))
 
-        
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    initiation_phase_duration_min = st.number_input("Initiation Duration (min)", value=5)
+                with col_d2:
+                    finish_line_phase_duration_min = st.number_input("Finish-Line Duration (min)", value=5)
 
-    with tab2_col2:
-        if st.button("Get Session Stress Results"):
-            if "response" not in st.session_state:
-                with st.spinner("Reading the api of the session results, please wait..."):
-                    url = "https://exrercise.8bellsresearch.com/classify_stress/"  # Replace with actual API URL
-                    
-                    headers = {
-                        "Accept": "application/json"
-                    }
+            with st.expander("Model & API Settings", expanded=False):
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    llm_model = st.selectbox("LLM Model", ["deepseek-chat", "gpt-4o", "mistralai/Mistral-7B-Instruct-v0.3"])
+                with col_m2:
+                    llm_api_key = st.text_input("LLM API Key", type="password")
+                api_url = st.text_input("API Endpoint", value="https://exrercise.8bellsresearch.com/classify_stress/")
 
-                    st.session_state["response"] = requests.get(url, params=params, headers=headers)
-
-                    with open("session_stress_results.json", "w") as json_file:
-                        json.dump(st.session_state["response"].json(), json_file, indent=4)
+            # Check required fields
+            required_fields = [
+                aws_access_key_id, aws_secret_access_key, aws_region_name, s3_bucket,
+                prefix, participant_id, timezone, llm_api_key, llm_model, api_url
+            ]
+            if all(field.strip() != "" for field in required_fields):
+                st.success("All required fields are filled.")
             else:
-                st.write("Session Stress Results already read")
+                st.warning("Please complete all required fields before submitting.")
 
-            target_id = st.session_state["api_participant_id"]
-            target_timestamp = f"{st.session_state['api_date'].strftime('%Y-%m-%d')}T{st.session_state['api_time'].strftime('%H:%M:%S')}+02:00"
+            submit_clicked = st.form_submit_button("Get AI Advisor Recommendation")
 
-            for entry in st.session_state["response"].json()["predictions"]:
-                if entry["participant_full_id"] == target_id and entry["timestamp"] == target_timestamp:
-                    st.write("Stress Prediction:", entry["stress_prediction"])
-                    st.session_state["stress_prediction"] = entry["stress_prediction"]
-                    break
-            else:
-                st.write("No match found.")
+    # Prepare params after form
+    params = {
+        "aws_access_key_id": aws_access_key_id,
+        "aws_secret_access_key": aws_secret_access_key,
+        "aws_region_name": aws_region_name,
+        "s3_bucket": s3_bucket,
+        "prefix": prefix,
+        "participant_id": participant_id,
+        "timezone": timezone,
+        "baseline_date": baseline_date.strftime("%Y-%m-%d"),
+        "baseline_start_time": baseline_start_time.strftime("%H:%M"),
+        "baseline_end_time": baseline_end_time.strftime("%H:%M"),
+        "classification_date": classification_date.strftime("%Y-%m-%d"),
+        "classification_start_time": classification_start_time.strftime("%H:%M"),
+        "classification_end_time": classification_end_time.strftime("%H:%M"),
+        "initiation_phase_duration_min": initiation_phase_duration_min,
+        "finish_line_phase_duration_min": finish_line_phase_duration_min,
+        "llm_api_key": llm_api_key,
+        "llm_model": llm_model
+    }
 
-    with tab2_col3:
-        
-        st.text_input("Enter the participant id", key="api_participant_id", value="1704-1-1-1")
-        st.date_input("Enter the date of the session (dd/mm/yyyy)", key="api_date", value=datetime.date(2025, 2, 27))
-        st.time_input("Enter the time of the session (hh:mm)", key="api_time", 
-                      value=datetime.time(16, 27, 0), step=datetime.timedelta(minutes=1))
-        if os.path.exists("session_stress_results.json"):
-            st.write("Session Stress API Results:")
-            st.json(json.load(open("session_stress_results.json")), expanded=False)
+    with right_col:
+        if submit_clicked:
+            with st.spinner("Contacting the API..."):
+                try:
+                    resp = requests.get(api_url, params=params, timeout=120)
+                    resp.raise_for_status()
+                    data = resp.json()
 
+                    advisor = data.get("ai_advisor_recommendation", None)
+                    if advisor:
+                        st.success("AI Advisor Recommendation:\n\n" + advisor)
+                    else:
+                        st.warning("No AI Advisor Recommendation returned from API.")
 
+                    with st.expander("Full API response"):
+                        st.json(data)
+                except Exception as e:
+                    st.error(f"API call failed: {e}")
