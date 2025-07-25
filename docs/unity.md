@@ -75,9 +75,9 @@ This component, retrieves the LLM structured output from a dataset repository, w
 
 | Parameter | Type   | Description |
 |----------|--------|-------------|
-| repoId | string | Hugging Face dataset repository ID (e.g., username/dataset_name). |
+| repoId | string | Hugging Face dataset repository ID (e.g., noesishub/XYZ). |
 | filename | string | JSON file name inside the dataset. |
-| token | string | (Optional) Hugging Face access token. Required for private datasets. |
+| token | string | Hugging Face access token. Required for private datasets (please contact us at **info@noesishub.com** to provide you with a testing token). |
 
 ![Inspector Screenshot](assets/images/huggingface-parameters.png)  
 *Example showing the HuggingFaceJsonFetcher component fields in the Unity Inspector.*

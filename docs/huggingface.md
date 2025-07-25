@@ -35,20 +35,59 @@ The system then:
 
 ### 2.2 AI Advisor Tab
 
-This tab supports two advanced functions:
+The **AI Advisor Tab**, available on the eXRercise Hugging Face Interface, supports two advanced functions:
 
-1. Session Stress Result Retrieval: Connects to an external stress classification API to retrieve the participant’s emotional/stress performance based on physiological data.
+1. **Session Stress Result**
+2. **Performance Report Generation**
 
-2. Performance Report Generation: Uses the LLM to generate a markdown report incorporating:
-   - Session metadata (date, time, participant ID)
-   - Robotic arm distances
-   - Malfunction and fire detection summary
-   - Stress analysis results
-   - Analytical tables and conclusions
+### Functionality Overview
 
+- **Session Stress Results Retrieval:** Connects to an external stress classification API to retrieve emotional/stress performance based on physiological data.
+- **Performance Report Generation:** Uses the LLM to generate a markdown report that includes:
+  - **Session metadata** (date, time, participant ID)
+  - **Stress analysis** results with tables
+  - **Recommendations** for future training scenarios
 
-![Robotic Arm Selector](assets/images/aiadvisor.png)
-Figure 2: AI Advisor Tab
+![AI Advisor](assets/images/ai-advisor.png)
+*Figure 2: AI Advisor Tab*
+
+### LLM Compatibility
+
+- Supports **DeepSeek** and **OpenAI’s** LLM APIs.
+
+The Session Stress Results Retrieval function currently supports **Empatica Embrace Plus** wristband data from an **AWS S3 Bucket**.
+
+### Biometric Signals Collected:
+
+1. Aggregated Per Minute Electrodermal Activity (EDA)
+2. Aggregated Per Minute Skin Temperature
+3. Accelerometry Standard Deviation
+
+A pre-trained **CNN** performs per-minute stress classification before invoking the LLM.
+
+---
+
+### Required API Parameters
+
+| Name                          | Description |
+|-------------------------------|-------------|
+| `aws_region_name`             | AWS region (e.g., `us-east-1`) |
+| `s3_bucket`                   | S3 bucket name |
+| `prefix`                      | Path prefix  |
+| `participant_id`              | Participant ID  |
+| `timezone`                    | EU timezone (e.g., `Europe/Athens`) |
+| `baseline_date`               | Baseline date (YYYY-MM-DD) |
+| `baseline_start_time`         | Start time for baseline (HH or HH:MM) |
+| `baseline_end_time`           | End time for baseline (HH or HH:MM) |
+| `classification_date`         | Classification date (YYYY-MM-DD) |
+| `classification_start_time`   | Start time for classification (HH or HH:MM) |
+| `classification_end_time`     | End time for classification (HH or HH:MM) |
+| `initiation_phase_duration_min` | Duration in minutes for initiation |
+| `finish_line_phase_duration_min` | Duration in minutes for finish line |
+| `llm_api_key`                 | (Optional) LLM API key |
+| `llm_model`                   | (Optional) LLM model (default: `deepseek-chat`) |
+
+---
 
 ## 3 System Components
 
@@ -68,8 +107,8 @@ Users can input precise numerical distances for each robotic arm. These values a
 
 Models supported include:
 
-- GPT-4o, GPT-4o-mini (OpenAI API)
-- Zephyr-7b-beta, Mistral-7B-Instruct-v0.3, Qwen2.5-72B-Instruct (Hugging Face Inference API)
+- GPT-4o, GPT-4o-mini (OpenAI API, currently disabled options)
+- Llama-3.1-8B-Instruct, Mixtral-8x22B-Instruct-v0.1, DeepSeek-V3 (Hugging Face Inference API)
 
 The list of models can be extended to include others.
 
@@ -87,7 +126,17 @@ The system queries a stress analysis API to retrieve a participant’s classific
 }
 ```
 
-Generated with OpenAI API (gpt-4o).
+### Example AI Advisor LLM Response
+
+> “Based on the feedback and stress data, the next training session should decrease difficulty, with the following phase-specific justifications:
+> 
+> **Initiation Phase**: High stress at the start suggests discomfort with the XR environment. A slower onboarding process (e.g., guided acclimatization, simpler warm-up tasks) should precede the main training to reduce initial anxiety.
+>
+> **Training Phase**: Persistent stress during the core scenario indicates the current difficulty is overwhelming. Scaling back challenges (e.g., fewer stimuli, slower pacing) or adding real-time guidance (e.g., hints, breaks) will help the trainee build confidence.
+> 
+> **Finish Line Phase**: The calm finish suggests the trainee can handle consolidation phases well, but the high overall stress percentage (67%) confirms the need for a gentler progression.
+> 
+> **Action**: Reduce difficulty, prioritize acclimatization, and monitor stress responses closely in the next session before gradually increasing challenges.”
 
 ## 5 Usability and User Experience
 
