@@ -1,0 +1,8 @@
+:root {
+  --md-typeset-font-size: 0.95rem;
+}
+
+.md-typeset {
+  font-size: 17px;
+  line-height: 1.7;
+}
