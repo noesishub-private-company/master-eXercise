@@ -4,6 +4,7 @@ nav:
   - Introduction: index.md
   - Hugging Face: huggingface.md
   - Unity DLL: unity.md
+  - User Guide: guide.md
 
 theme:
   name: material
