@@ -102,3 +102,10 @@ The name of the file the LLM writes the structured output in the designated data
 In order to access the Hugging Face dataset, we need to create a token from the Hugging Face user account in order for the library to be authenticated and authorized to access the file mentioned above (same logic as in github, gitlab, etc). Refer to this [link](https://huggingface.co/docs/hub/en/security-tokens) for additional information on this topic. Be aware to set the correct priviledges, otherwise the library will now be able to access the file, resulting in a 401 error response.
 
 >**BE CAREFULL not to publish or accidentally share the generated token. Line other tokens, is must not be publically available!**
+
+## 4 Usage Hints & Tips
+
+Here are some hints and tips for taking care of some non-automated settings and options. We are considering to integrate these as automatic mechanisms to pre-emptivelly manage and handle setup mistakes.
+
+- The number of the RoboticArms inside the Unity application must be the same as in the Robotic Arm Selector UI as in the Number of Robotic Arms value set there.
+- Reading the LLM structured output, which is written inside a hugging face dataset, required a token. The dataset name is noesishub/XYZ, and the token can be provided by contacting us via the following mail: **info@noesishub.com**
